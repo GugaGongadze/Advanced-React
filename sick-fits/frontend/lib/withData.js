@@ -13,7 +13,8 @@ function createClient({ headers }) {
         headers,
       });
     },
-  });
+  },
+  { connectToDevTools: true });
 }
 
 export default withApollo(createClient);
