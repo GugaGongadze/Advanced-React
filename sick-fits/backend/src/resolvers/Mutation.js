@@ -1,5 +1,7 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const { randomBytes } = require('crypto')
+const { promisify } = require('util')
 
 const Mutations = {
   async createItem(parent, args, ctx, info) {
@@ -76,6 +78,64 @@ const Mutations = {
     ctx.response.clearCookie('token')
 
     return { message: 'Goodbye! 👋' }
+  },
+  async requestReset(parent, args, ctx, info) {
+    const user = await ctx.db.query.user({ where: { email: args.email } })
+    if (!user) {
+      throw new Error(`No such user found for email: ${args.email}`)
+    }
+
+    const resetToken = (await promisify(randomBytes)(20)).toString('hex')
+    const resetTokenExpiry = Date.now() + 3600000
+    const res = await ctx.db.mutation.updateUser({
+      where: { email: args.email },
+      data: { resetToken, resetTokenExpiry }
+    })
+
+    return { message: 'Thanks!' }
+  },
+  async resetPassword(parent, { resetToken, password, confirmPassword }, ctx, info) {
+    // 1. Check if the password match
+    if (password !== confirmPassword) {
+      throw new Error('Password do not match!')
+    }
+
+    // 2. Check if it's a legit reset token
+    // 3. Check if it's expired
+    const [user] = await ctx.db.query.users({
+      where: {
+        resetToken,
+        resetTokenExpiry_gte: Date.now() - 3600000
+      } 
+    })
+    if (!user) {
+      throw new Error('Reset Token does not exist or is expired!')
+    }
+
+    // 4. Hash their new password
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // 5. Save the new password to the user and remove old reset token
+    const updatedUser = await ctx.db.mutation.updateUser({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      }
+    }, info)
+
+    // 6. Generate JWT
+    const token = jwt.sign({ userId: user.id }, process.env.APP_SECRET)
+
+    // 7. Set JWT cookie
+    ctx.response.cookie('token', token, {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 365
+    })
+
+    // 8. Return user
+    return updatedUser
   }
 }
 

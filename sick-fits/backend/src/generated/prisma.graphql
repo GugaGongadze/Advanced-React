@@ -1,5 +1,5 @@
 # source: https://eu1.prisma.sh/guga-gongadze-85ad25/sick-fits/dev
-# timestamp: Sat Dec 22 2018 12:03:02 GMT+0400 (+04)
+# timestamp: Sat Dec 22 2018 23:56:25 GMT+0400 (+04)
 
 type AggregateItem {
   count: Int!
