@@ -1,10 +1,10 @@
 import CreateItem from '../components/CreateItem'
-import PleaseSignin from '../components/PleaseSignin'
+import PleaseSignIn from '../components/PleaseSignIn'
 
 const Sell = () => (
-  <PleaseSignin>
+  <PleaseSignIn>
     <CreateItem />
-  </PleaseSignin>
+  </PleaseSignIn>
 )
 
 export default Sell
